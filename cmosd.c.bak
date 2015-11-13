@@ -1,0 +1,39 @@
+/***
+ *    CMOS Dumper
+ *    Endrazine
+ *
+ * compiling: gcc cmosd.c -o cmosd.o
+ * usage: # cmosd > cmod.dump
+ *
+ ***/
+
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/io.h>
+#include <stdlib.h>
+int main(){
+
+  int i;
+
+  if (ioperm(0x70, 2, 1)){ // ask permission (set to 1) for ports 0x70, 0x71
+    perror("ioperm");
+    exit (1);
+  }
+
+  for (i = 0; i < 64; i++){
+    outb(i, 0x70); // write to port 0x70
+    usleep(100000);
+    printf("%c", inb(0x71));
+  }
+
+  if (ioperm(0x71, 2, 0)){  // we don't need perms anymore (set to 0)
+    perror("ioperm");
+    exit(1);
+  }
+
+  exit (0);
+}
+
+    
+
+    
