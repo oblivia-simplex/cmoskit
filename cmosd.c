@@ -3,7 +3,8 @@
  *    Oblivia Simplex
  * 
  *    Inspiried by an article by Endrazine
- *
+ *    and Darmawan Saljhun's book, BIOS DISASSEMBLY NINJITSU
+ * 
  * compiling: gcc cmosd.c -O0 -o cmosd.o
  * usage: # ./cmosd 
  *
@@ -23,7 +24,7 @@
 
 
 int crack(char *cracked, char *enc_password, char *dicpath);
-
+void read_cmos (unsigned char *buffer, int verbose);
 int main(int argc, char **argv){
 
   unsigned char *buffer = calloc(0x60, sizeof(char));
@@ -53,35 +54,15 @@ int main(int argc, char **argv){
           "This will take a moment...\n"
           "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n");
 
-  printf("\n       ");
-  for (i = 0; i < 0x10; i++){
-    if (i == 8)
-      printf(" ");
-    printf("%2.1x ",i);
-  }
-  printf("\n     +");
-  for (i = 0; i < 49; i++)
-    printf("-");
-  printf("\n0x%2.2x | ",0);
-  for (i = 0; i < 0x5C; i++){
-    outb(i, CMOS_ADDR);  // pass address to CMOS address register (port 0x70)
-    usleep(100000);      // give CMOS time to update data register
-    *(buffer + i) = inb(CMOS_DATA); // read from CMOS data register (port 0x70)
-    printf("%2.2x ", *(buffer + i));
-    if ((i+1) % 16 == 0){
-      if ((i+1) == 0x40)
-        printf("*");
-      printf("\n0x%2.2x | ",i+1);
-    } else if ((i+1) % 8 == 0)
-      printf(" ");
-  }
-  puts("");
+  int verbose = 1;
+  
+  read_cmos(buffer, verbose);
 
   memcpy(password, (buffer + PSWD_INDEX), 6);
 
   char ans;
   printf("CMOS CHECKSUM @ 0x%2.2x: 0x%2.2x\n", CHKSUM_INDEX, *(buffer + CHKSUM_INDEX));
-  printf("RESET (y/N)? ");
+  printf("FLIP TO FORCE RESET (OR UNDO PRIOR FLIP) (y/N)? ");
   scanf("%c",&ans);
   if (ans == 'Y' || ans == 'y'){
     outb(CHKSUM_INDEX, CMOS_ADDR);
@@ -143,7 +124,36 @@ int encrypt(char *enc, char *unenc){
   return 0;
 }
 
-    
+
+void read_cmos(unsigned char *buffer, int verbose){
+
+  FILE *log = verbose? stdout : (FILE *) NULL ;
+  int i;
+  
+  fprintf(log, "\n       ");
+  for (i = 0; i < 0x10; i++){
+    if (i == 8)
+      fprintf(log, " ");
+    fprintf(log, "%2.1x ",i);
+  }
+  fprintf(log, "\n     +");
+  for (i = 0; i < 49; i++)
+    fprintf(log, "-");
+  fprintf(log, "\n0x%2.2x | ",0);
+  for (i = 0; i < 0x5C; i++){
+    outb(i, CMOS_ADDR);  // pass address to CMOS address register (port 0x70)
+    usleep(50000);      // give CMOS time to update data register
+    *(buffer + i) = inb(CMOS_DATA); // read from CMOS data register (port 0x70)
+    fprintf(log, "%2.2x ", *(buffer + i));
+    if ((i+1) % 16 == 0){
+      if ((i+1) == 0x40)
+        fprintf(log, "*");
+      fprintf(log, "\n0x%2.2x | ",i+1);
+    } else if ((i+1) % 8 == 0)
+      fprintf(log, " ");
+  }
+  fprintf(log, "\n\n");
+}
 
 
 
