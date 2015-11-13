@@ -16,6 +16,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define RED "\x1b[31m"
+#define COLOR_RESET "\x1b[0m"
+
 #define CMOS_ADDR 0x70
 #define CMOS_DATA 0x71
 #define PSWD_INDEX 0x38
@@ -31,35 +34,51 @@ int main(int argc, char **argv){
   unsigned char *password = calloc(0x7, sizeof(char));
   int i;
   int dicloaded = 0;
+  int verbose = 1;
+  
   char *dicpath = malloc(0x20 * sizeof(char));
+  int read_and_exit = 0;
   
   // put the getopt thing up here.
-  
+
+  char opt;
 
   
+  while ((opt = getopt(argc, argv, "rqd:")) != -1){
+    switch (opt) {
+    case 'r':
+      read_and_exit = 1;
+      break;
+    case 'q':
+      verbose = 0;
+      break;
+    case 'd':
+      strncpy(dicpath, optarg, 0x19);
+      dicloaded = 1;
+      break;
+    default:
+      break;
+      //printf("USAGE MESSAGE goes here.\n");
+    }
+  }
   
   if (ioperm(CMOS_ADDR, 2, 1)){ // ask permission (set to 1) for ports 0x70, 0x71
     perror("ioperm");
     exit (1);
  }
-/*
-  if (0 != iopl(3)){ // try to obtain highest IO priv level
-    fprintf(stderr, "FATAL ERROR: UNABLE TO OBTAIN HIGHEST IOPL\n");
-    exit(EXIT_FAILURE);
-  }
-  
-*/
-  printf( "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n"
-          "DUMPING BIOS PARAMETERS FROM CMOS\n"
-          "This will take a moment...\n"
-          "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n");
 
-  int verbose = 1;
+  printf( RED"=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n"COLOR_RESET
+          "            -=oO( CMOS DEBA5E12 )Oo=- \n"
+          "Please wait while we dump your CMOS parameters.\n"
+          RED"=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n"COLOR_RESET);
   
   read_cmos(buffer, verbose);
 
-  memcpy(password, (buffer + PSWD_INDEX), 6);
+  if (read_and_exit){
+    goto finish;
+  }
 
+  /* This part deals with the checksum. */
   char ans;
   printf("CMOS CHECKSUM @ 0x%2.2x: 0x%2.2x\n", CHKSUM_INDEX, *(buffer + CHKSUM_INDEX));
   printf("FLIP TO FORCE RESET (OR UNDO PRIOR FLIP) (y/N)? ");
@@ -69,30 +88,34 @@ int main(int argc, char **argv){
     usleep(100000);
     outb(~(*(buffer + CHKSUM_INDEX)), CMOS_DATA);
     usleep(100000);
-    printf("*** CHECKSUM INVERTED! CMOS[0x%2.2x] = 0x%2.2x ***\n", CHKSUM_INDEX, inb(CMOS_DATA));
+    printf("*** "RED"CHECKSUM INVERTED! CMOS[0x%2.2x] = 0x%2.2x "COLOR_RESET" ***\n", CHKSUM_INDEX, inb(CMOS_DATA));
   }
-  
-      
+
+  /* This part deals with the password. */
+  memcpy(password, (buffer + PSWD_INDEX), 6);
   printf("\nENCRYPTED PASSWORD @ 0x%2.2x-0x%2.2x: ", PSWD_INDEX, PSWD_INDEX + PSWD_LEN);
   for (i = 0; i < 6; i++)
     printf("%2.2x ",*(password+i));
   printf("\n");
-  
-  if (ioperm(0x71, 2, 0)){  // we don't need perms anymore (set to 0)
-    perror("ioperm");
-    exit(1);
-  }
 
   if (!dicloaded){
     printf("To attempt to crack, enter path to dictionary file:\n>> ");
     scanf("%s", dicpath);
   }
-  
   char cracked[16];
+  if (!(crack(cracked, password, dicpath))){
+    printf("Failure to crack password\n");
+  } else {
+    printf("CRACKED: %s\n",cracked);
+  }
+  ///////////////////////////
+ finish:
 
-  crack(cracked, password, dicpath);
-
-  printf("CRACKED: %s\n",cracked);
+  /* Tidy things up. */
+  if (ioperm(0x71, 2, 0)){  // we don't need perms anymore (set to 0)
+    perror("ioperm");
+    exit(1);
+  }
 
   free(password);
   free(buffer);
@@ -127,9 +150,10 @@ int encrypt(char *enc, char *unenc){
 
 void read_cmos(unsigned char *buffer, int verbose){
 
-  FILE *log = verbose? stdout : (FILE *) NULL ;
+  FILE *log = verbose? stdout : fopen("/dev/null","w") ;
   int i;
-  
+
+  fprintf(log, RED);
   fprintf(log, "\n       ");
   for (i = 0; i < 0x10; i++){
     if (i == 8)
@@ -140,6 +164,7 @@ void read_cmos(unsigned char *buffer, int verbose){
   for (i = 0; i < 49; i++)
     fprintf(log, "-");
   fprintf(log, "\n0x%2.2x | ",0);
+  fprintf(log, COLOR_RESET);
   for (i = 0; i < 0x5C; i++){
     outb(i, CMOS_ADDR);  // pass address to CMOS address register (port 0x70)
     usleep(50000);      // give CMOS time to update data register
@@ -147,8 +172,8 @@ void read_cmos(unsigned char *buffer, int verbose){
     fprintf(log, "%2.2x ", *(buffer + i));
     if ((i+1) % 16 == 0){
       if ((i+1) == 0x40)
-        fprintf(log, "*");
-      fprintf(log, "\n0x%2.2x | ",i+1);
+        fprintf(log, RED "*" COLOR_RESET);
+      fprintf(log, RED "\n0x%2.2x | " COLOR_RESET ,i+1);
     } else if ((i+1) % 8 == 0)
       fprintf(log, " ");
   }
