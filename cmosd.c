@@ -1,9 +1,11 @@
 /***
- *    CMOS Dumper
- *    Endrazine
+ *    CMOS Hacking Utility
+ *    Oblivia Simplex
+ * 
+ *    Inspiried by an article by Endrazine
  *
- * compiling: gcc cmosd.c -o cmosd.o
- * usage: # cmosd > cmod.dump
+ * compiling: gcc cmosd.c -O0 -o cmosd.o
+ * usage: # ./cmosd 
  *
  ***/
 
