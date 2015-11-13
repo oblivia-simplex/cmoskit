@@ -37,6 +37,15 @@ int main(int argc, char **argv){
           "This will take a moment...\n"
           "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n");
 
+  printf("\n       ");
+  for (i = 0; i < 0x10; i++){
+    if (i == 8)
+      printf(" ");
+    printf("%2.2x ",i);
+  }
+  printf("\n     +");
+  for (i = 0; i < 49; i++)
+    printf("-");
   printf("\n0x%2.2x | ",0);
   for (i = 0; i < 0x5C; i++){
     outb(i, 0x70); // write to port 0x70
@@ -82,8 +91,29 @@ int main(int argc, char **argv){
 }
 
 int crack(char *cracked, char *enc, char *dicpath){
+  int counter = 0;
+  FILE *fd;
+  if ((fd = fopen(dicpath, "r")) == NULL){
+    fprintf(stderr, "FAILURE TO OPEN %s\nFATAL\n",dicpath);
+  }
+  // basic idea: brute dictionary attack. loop through the dictionary
+  // file, compare the encrypted version of the dictionary word with
+  // the password. Consider: multithreading, filtering out definitely
+  // wrong passwords, etc. or delegate filtering to preproc util, to
+  // save MUCH time. 
+  
   return 0;
 }
 
+int encrypt(char *enc, char *unenc){
+
+  // questions: what encryption algo is used?
+  // what is the min and max length of the cmos pswd?
+
+  return 0;
+}
 
     
+
+
+
