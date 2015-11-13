@@ -24,10 +24,10 @@
 #define PSWD_INDEX 0x38
 #define CHKSUM_INDEX 0x2E
 #define PSWD_LEN 6
-
+#define DELAY 50000
 
 int crack(char *cracked, char *enc_password, char *dicpath);
-void read_cmos (unsigned char *buffer, int verbose);
+void read_cmos (unsigned char *buffer, int verbose, int lag);
 int main(int argc, char **argv){
 
   unsigned char *buffer = calloc(0x60, sizeof(char));
@@ -43,9 +43,13 @@ int main(int argc, char **argv){
 
   char opt;
 
+  int lag = DELAY;
   
-  while ((opt = getopt(argc, argv, "rqd:")) != -1){
+  while ((opt = getopt(argc, argv, "t:rqd:")) != -1){
     switch (opt) {
+    case 't':
+      lag = atoi(optarg);
+      break;
     case 'r':
       read_and_exit = 1;
       break;
@@ -72,7 +76,7 @@ int main(int argc, char **argv){
           "Please wait while we dump your CMOS parameters.\n"
           RED"=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n"COLOR_RESET);
   
-  read_cmos(buffer, verbose);
+  read_cmos(buffer, verbose, lag);
 
   if (read_and_exit){
     goto finish;
@@ -85,9 +89,9 @@ int main(int argc, char **argv){
   scanf("%c",&ans);
   if (ans == 'Y' || ans == 'y'){
     outb(CHKSUM_INDEX, CMOS_ADDR);
-    usleep(100000);
+    usleep(lag);
     outb(~(*(buffer + CHKSUM_INDEX)), CMOS_DATA);
-    usleep(100000);
+    usleep(lag);
     printf("*** "RED"CHECKSUM INVERTED! CMOS[0x%2.2x] = 0x%2.2x "COLOR_RESET" ***\n", CHKSUM_INDEX, inb(CMOS_DATA));
   }
 
@@ -148,7 +152,7 @@ int encrypt(char *enc, char *unenc){
 }
 
 
-void read_cmos(unsigned char *buffer, int verbose){
+void read_cmos(unsigned char *buffer, int verbose, int lag){
 
   FILE *log = verbose? stdout : fopen("/dev/null","w") ;
   int i;
@@ -167,7 +171,7 @@ void read_cmos(unsigned char *buffer, int verbose){
   fprintf(log, COLOR_RESET);
   for (i = 0; i < 0x5C; i++){
     outb(i, CMOS_ADDR);  // pass address to CMOS address register (port 0x70)
-    usleep(50000);      // give CMOS time to update data register
+    usleep(lag);      // give CMOS time to update data register
     *(buffer + i) = inb(CMOS_DATA); // read from CMOS data register (port 0x70)
     fprintf(log, "%2.2x ", *(buffer + i));
     if ((i+1) % 16 == 0){
