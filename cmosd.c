@@ -53,7 +53,7 @@ int main(int argc, char **argv){
     *(buffer + i) = inb(0x71);
     printf("%2.2x ", *(buffer + i));
     if ((i+1) % 16 == 0){
-      if ((i+1) == 0x50)
+      if ((i+1) == 0x40)
         printf("*");
       printf("\n0x%2.2x | ",i+1);
     } else if ((i+1) % 8 == 0)
