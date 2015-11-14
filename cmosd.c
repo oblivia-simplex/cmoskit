@@ -107,6 +107,7 @@ int main(int argc, char **argv){
     scanf("%s", dicpath);
   }
   char cracked[16];
+
   if (!(crack(cracked, password, dicpath))){
     printf("Failure to crack password\n");
   } else {
@@ -127,8 +128,10 @@ int main(int argc, char **argv){
   exit (0);
 }
 
-int crack(char *cracked, char *enc, char *dicpath){
+#define MAXLEN 16
+int crack(char *cracked, char *password, char *dicpath){
   int counter = 0;
+  int report_freq = 100;
   FILE *fd;
   if ((fd = fopen(dicpath, "r")) == NULL){
     fprintf(stderr, "FAILURE TO OPEN %s\nFATAL\n",dicpath);
@@ -138,9 +141,28 @@ int crack(char *cracked, char *enc, char *dicpath){
   // file, compare the encrypted version of the dictionary word with
   // the password. Consider: multithreading, filtering out definitely
   // wrong passwords, etc. or delegate filtering to preproc util, to
-  // save MUCH time. 
-  
-  return 0;
+  // save MUCH time.
+  char attempt[MAXLEN];
+  char encrypted[PSWD_LEN];
+  char *npos;
+  while (fgets (attempt, MAXLEN, fd)) {
+    if ((npos = strchr(attempt, '\n')) != NULL)
+      *npos = '\0'; // strip off the trailing newline
+    if (counter % report_freq == 0)
+      printf("\rTried %d phrases so far. Now trying %s.", counter ++,
+             attempt);
+    memset(encrypted, 0, PSWD_LEN);
+    encrypt(encrypted, attempt);
+    if (!strncmp(encrypted, password, MAXLEN)) {
+      printf(RED"\nEUREKA!\nCMOS PASSWORD: %s\n",attempt);
+      strncpy(cracked, attempt, MAXLEN);
+      return 0;
+    }
+  }
+  printf("Sorry. After %d attempts, the password is still not cracked.\n",
+         counter);
+    
+  return 1;
 }
 
 int encrypt(char *enc, char *unenc){
