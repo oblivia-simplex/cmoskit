@@ -19,13 +19,13 @@
 #define RED  "\x1b[31m"
 
 #define COLOR_RESET "\x1b[0m"
-
+#define CLEARREST "\x1b[K"
 #define CMOS_ADDR 0x70
 #define CMOS_DATA 0x71
 #define PSWD_INDEX 0x38
 #define CHKSUM_INDEX 0x2E
 #define PSWD_LEN 6
-#define DELAY 50000
+#define DELAY 5000
 
 int crack(char *cracked, char *enc_password, char *dicpath);
 void read_cmos (unsigned char *buffer, int verbose, int lag);
@@ -84,7 +84,9 @@ int main(int argc, char **argv){
   if (read_and_exit){
     goto finish;
   }
-
+  if (dicloaded){
+    goto cracker;
+  }
   /* This part deals with the checksum. */
   char ans;
   printf("CMOS CHECKSUM @ 0x%2.2x: 0x%2.2x\n", CHKSUM_INDEX, *(buffer + CHKSUM_INDEX));
@@ -98,9 +100,10 @@ int main(int argc, char **argv){
     printf("*** "RED"CHECKSUM INVERTED! CMOS[0x%2.2x] = 0x%2.2x "COLOR_RESET" ***\n", CHKSUM_INDEX, inb(CMOS_DATA));
   }
 
+ cracker:
   /* This part deals with the password. */
   memcpy(password, (buffer + PSWD_INDEX), 6);
-  printf("\nENCRYPTED PASSWORD @ 0x%2.2x-0x%2.2x: ", PSWD_INDEX, PSWD_INDEX + PSWD_LEN);
+  printf("\nENCRYPTED PASSWORD AT BYTES 0x%2.2x TO 0x%2.2x: ", PSWD_INDEX, PSWD_INDEX + PSWD_LEN);
   for (i = 0; i < 6; i++)
     printf("%2.2x ",*(password+i));
   printf("\n");
@@ -111,10 +114,10 @@ int main(int argc, char **argv){
   }
   char cracked[16];
 
-  if (!(crack(cracked, password, dicpath))){
-    printf("Failure to crack password\n");
+  if (crack(cracked, password, dicpath) != 0){
+    printf("Sorry. The password has not been cracked.\n");
   } else {
-    printf("CRACKED: %s\n",cracked);
+    printf(RED"EUREKA:"COLOR_RESET" %s\n", cracked);
   }
   ///////////////////////////
  finish:
@@ -134,7 +137,7 @@ int main(int argc, char **argv){
 #define MAXLEN 16
 int crack(char *cracked, char *password, char *dicpath){
   int counter = 0;
-  int report_freq = 100;
+  int report_freq = 0x100;
   FILE *fd;
   if ((fd = fopen(dicpath, "r")) == NULL){
     fprintf(stderr, "FAILURE TO OPEN %s\nFATAL\n",dicpath);
@@ -148,23 +151,37 @@ int crack(char *cracked, char *password, char *dicpath){
   char attempt[MAXLEN];
   char encrypted[PSWD_LEN];
   char *npos;
+  int i;
   while (fgets (attempt, MAXLEN, fd)) {
     if ((npos = strchr(attempt, '\n')) != NULL)
       *npos = '\0'; // strip off the trailing newline
-    if (counter % report_freq == 0)
-      printf("\rTried %d phrases so far. Now trying %s.", counter ++,
-             attempt);
     memset(encrypted, 0, PSWD_LEN);
     encrypt(encrypted, attempt);
+    if (++counter % report_freq == 0){
+      printf("\r[%d]  "RED, counter);
+      for (i = 0; i < PSWD_LEN; i++)
+        printf("%2.2x ",(unsigned char) encrypted[i]);
+      printf (COLOR_RESET" [%s]"CLEARREST, attempt);
+    }
+    
+    
     if (!strncmp(encrypted, password, MAXLEN)) {
-      printf(RED"\nEUREKA!\nCMOS PASSWORD: %s\n",attempt);
+      //printf(RED"\nEUREKA!\nCMOS PASSWORD: %s\n",attempt);
+      printf("\n\n");
       strncpy(cracked, attempt, MAXLEN);
       return 0;
     }
+<<<<<<< HEAD
 }
   printf("Sorry. After %d attempts, the password is still not cracked.\n",
          counter);
     
+=======
+  }
+  //printf("\nSorry. After %d attempts, the password is still not cracked.\n",
+  //         counter);
+  printf("\n");
+>>>>>>> ac35b56af188e08cbbfd7b3eb49a916e8c127e24
   return 1;
 }
 
@@ -172,7 +189,11 @@ int encrypt(char *enc, char *unenc){
 
   // questions: what encryption algo is used?
   // what is the min and max length of the cmos pswd?
-
+  /******* FAKE ********/
+  long int rnd = random() & 0xFFFFFFFFFFFF;
+  memcpy(enc, &rnd, PSWD_LEN);
+  /****** END FAKE *****/
+  
   return 0;
 }
 
