@@ -16,7 +16,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define RED "\x1b[31m"
+#define RED  "\x1b[31m"
+
 #define COLOR_RESET "\x1b[0m"
 
 #define CMOS_ADDR 0x70
@@ -28,9 +29,11 @@
 
 int crack(char *cracked, char *enc_password, char *dicpath);
 void read_cmos (unsigned char *buffer, int verbose, int lag);
+int encrypt(char *enc, char *unenc);
+
 int main(int argc, char **argv){
 
-  unsigned char *buffer = calloc(0x60, sizeof(char));
+  unsigned char *buffer = calloc(0x100, sizeof(char));
   unsigned char *password = calloc(0x7, sizeof(char));
   int i;
   int dicloaded = 0;
@@ -158,7 +161,7 @@ int crack(char *cracked, char *password, char *dicpath){
       strncpy(cracked, attempt, MAXLEN);
       return 0;
     }
-  }
+}
   printf("Sorry. After %d attempts, the password is still not cracked.\n",
          counter);
     
@@ -187,16 +190,23 @@ void read_cmos(unsigned char *buffer, int verbose, int lag){
     fprintf(log, "%2.1x ",i);
   }
   fprintf(log, "\n     +");
-  for (i = 0; i < 49; i++)
+  for (i = 0; i < 50; i++)
     fprintf(log, "-");
-  fprintf(log, "\n0x%2.2x | ",0);
+  fprintf(log, "+\n0x%2.2x | ",0);
   fprintf(log, COLOR_RESET);
-  for (i = 0; i < 0x5C; i++){
+  for (i = 0; i < 0xFE; i++){ // 0x5C originally
     outb(i, CMOS_ADDR);  // pass address to CMOS address register (port 0x70)
     usleep(lag);      // give CMOS time to update data register
     *(buffer + i) = inb(CMOS_DATA); // read from CMOS data register (port 0x70)
     fprintf(log, "%2.2x ", *(buffer + i));
     if ((i+1) % 16 == 0){
+      fprintf(log, RED"| ");
+      int j;
+      for (j = i-16; j < i; j ++){
+        char ch = (*(buffer + j) < 0x7f && *(buffer + j) > 0x1f)?
+          *(buffer + j) : '.';
+        fprintf(log, RED"%c", ch);
+      }
       if ((i+1) == 0x40)
         fprintf(log, RED "*" COLOR_RESET);
       fprintf(log, RED "\n0x%2.2x | " COLOR_RESET ,i+1);
@@ -205,6 +215,31 @@ void read_cmos(unsigned char *buffer, int verbose, int lag){
   }
   fprintf(log, "\n\n");
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
