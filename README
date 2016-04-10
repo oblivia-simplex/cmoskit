@@ -1,6 +1,22 @@
-## CMOS TOOLS: Variations on Endrazine
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+  ___ __  __  ___  ___   _____ ___   ___  _    _  _____ _____
+ / __|  \/  |/ _ \/ __| |_   _/ _ \ / _ \| |  | |/ /_ _|_   _|
+| (__| |\/| | (_) \__ \   | || (_) | (_) | |__| ' < | |  | |
+ \___|_|  |_|\___/|___/   |_| \___/ \___/|____|_|\_\___| |_|
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 This is a collection of tools/experiments inspired by, and forking,
 Endrazine's stellar article, "BIOS Information Leakage" (a copy of 
-which can be found in this repo). 
+which can be found in this repo).
+
+At present, it lets you dump and manipulate the contents of CMOS
+memory, while logged into the system as root (remotely or locally).
+The plan is to build in a dictionary-driven password cracker as well.
+On older systems, a relatively weak hash of the BIOS password is
+stored in CMOS memory (using CRC-16, I think, or some variation on
+the same). Harness an efficient CRC-16 hash func to this utility,
+and grind through a dictionary while comparing the output to the
+bytes at addresses 0x2E and 0x2F of the CMOS dump, and you should
+be sitting pretty. This is on the TODO list, though, for now.
+
 

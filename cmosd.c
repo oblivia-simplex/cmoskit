@@ -171,17 +171,17 @@ int crack(char *cracked, char *password, char *dicpath){
       strncpy(cracked, attempt, MAXLEN);
       return 0;
     }
-<<<<<<< HEAD
-}
-  printf("Sorry. After %d attempts, the password is still not cracked.\n",
-         counter);
+/* <<<<<<< HEAD */
+/* } */
+/*   printf("Sorry. After %d attempts, the password is still not cracked.\n", */
+/*          counter); */
     
-=======
+/* ======= */
   }
   //printf("\nSorry. After %d attempts, the password is still not cracked.\n",
   //         counter);
   printf("\n");
->>>>>>> ac35b56af188e08cbbfd7b3eb49a916e8c127e24
+/* >>>>>>> ac35b56af188e08cbbfd7b3eb49a916e8c127e24 */
   return 1;
 }
 
